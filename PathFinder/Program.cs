@@ -13,9 +13,7 @@ builder.Services.AddScoped<ILineOfSightChecker, BresenhamLineOfSightChecker>();
 builder.Services.AddScoped<IHeadingCalculator, StopAndTurnHeadingCalculator>();
 builder.Services.AddScoped<IPathOptimizer, RaycastingPathOptimizer>();
 builder.Services.AddScoped<PathFinder.Services.PathfindingService>();
-builder.Services.AddSingleton<ISpeedEvaluator, CostmapSpeedEvaluator>();
-builder.Services.AddTransient<ILineOfSightChecker, BresenhamLineOfSightChecker>();
-builder.Services.AddTransient<IHeadingCalculator, StopAndTurnHeadingCalculator>();
+builder.Services.AddSingleton<ISpeedEvaluator, DynamicSpeedEvaluator>();
 
 // ⭐ FIX: Forza la cultura invariante per il parsing dei numeri.
 // Senza questo, su macchine con cultura it-IT il model binding di ASP.NET

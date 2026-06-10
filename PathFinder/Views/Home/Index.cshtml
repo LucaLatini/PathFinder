@@ -19,10 +19,6 @@
             <input type="number" id="cellSizeInput" class="form-control" value="10" min="1" title="Definisce la dimensione logica della cella per A*" />
         </div>
         <div class="col-md-2">
-            <label class="form-label text-muted small">Raggio AMR (Metri)</label>
-            <input type="number" id="robotRadiusInput" class="form-control" value="0.5" min="0" step="0.1" title="Raggio di ingombro del robot in metri" />
-        </div>
-        <div class="col-md-2">
             <label class="form-label text-muted small">Orientamento Fin. (°)</label>
             <input type="number" id="finalAngleInput" class="form-control" placeholder="Es. 90" title="Angolo assoluto in gradi all'ultimo punto (opzionale)" />
         </div>
@@ -70,7 +66,6 @@
         const btnDownload = document.getElementById('btnDownload');
         const statusMessage = document.getElementById('statusMessage');
         const cellSizeInput = document.getElementById('cellSizeInput');
-        const robotRadiusInput = document.getElementById('robotRadiusInput');
 
         let currentImage = new Image();
         let imageFile = null;
@@ -152,7 +147,6 @@
             formData.append('metadataFile', metaFile);
             formData.append('waypointsJson', JSON.stringify(pointsArray));
             formData.append('cellSize', cellSizeInput.value || 10);
-            formData.append('robotRadiusMeters', robotRadiusInput.value || 0.5);
 
             if (finalAngleInput.value !== "") {
                 formData.append('finalAngleDeg', finalAngleInput.value);

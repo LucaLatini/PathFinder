@@ -1,5 +1,9 @@
 using PathFinder.Interfaces;
 using SkiaSharp;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace PathFinder.Strategies
 {
@@ -34,7 +38,6 @@ namespace PathFinder.Strategies
 
                     totalPixelsCount[gridX, gridY]++;
 
-                    // Filtro anti-rumore: consideriamo ostacolo solo se è molto scuro
                     if (pixel.Red < 80 && pixel.Green < 80 && pixel.Blue < 80)
                     {
                         obstaclePixelsCount[gridX, gridY]++;
@@ -49,8 +52,6 @@ namespace PathFinder.Strategies
                     if (totalPixelsCount[x, y] > 0)
                     {
                         double ratio = (double)obstaclePixelsCount[x, y] / totalPixelsCount[x, y];
-                        // Solo se almeno il 30% della cella logica è muro, marchiamo la cella come ostacolo.
-                        // Altrimenti è polvere o rumore dello SLAM.
                         if (ratio > 0.30) rawGrid[x, y] = 255;
                         else rawGrid[x, y] = 0;
                     }
@@ -60,74 +61,44 @@ namespace PathFinder.Strategies
             return rawGrid;
         }
 
-        public int[,] InflateGrid(int[,] rawGrid, int robotRadiusCells)
+        public double[,] CreateDistanceMap(int[,] rawGrid, double resolution)
         {
             int width = rawGrid.GetLength(0);
             int height = rawGrid.GetLength(1);
-            var inflatedGrid = new int[width, height];
+            var distSq = new double[width, height];
 
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++)
-                    inflatedGrid[x, y] = rawGrid[x, y];
+                    distSq[x, y] = (rawGrid[x, y] == 255) ? 0 : 1e9;
 
-            if (robotRadiusCells <= 0) return inflatedGrid;
-
-            int radiusSquared = robotRadiusCells * robotRadiusCells;
-
-            // Creiamo un cuscinetto dinamico basato sul raggio del robot
-            double inflationRadiusCells = robotRadiusCells + 2;
-            int inflationRadiusSquared = (int)(inflationRadiusCells * inflationRadiusCells);
-
+            // Passaggio 1: Alto-Sinistra -> Basso-Destra
             for (int y = 0; y < height; y++)
             {
                 for (int x = 0; x < width; x++)
                 {
-                    // Espandiamo solo a partire dai muri fisici (255)
-                    if (rawGrid[x, y] == 255)
-                    {
-                        int maxRadiusCheck = (int)Math.Ceiling(inflationRadiusCells);
-
-                        for (int dy = -maxRadiusCheck; dy <= maxRadiusCheck; dy++)
-                        {
-                            for (int dx = -maxRadiusCheck; dx <= maxRadiusCheck; dx++)
-                            {
-                                int distSquared = dx * dx + dy * dy;
-
-                                if (distSquared <= inflationRadiusSquared)
-                                {
-                                    int nx = x + dx;
-                                    int ny = y + dy;
-
-                                    if (nx >= 0 && nx < width && ny >= 0 && ny < height)
-                                    {
-                                        if (distSquared <= radiusSquared)
-                                        {
-                                            inflatedGrid[nx, ny] = 255; // Zona impatto letale
-                                        }
-                                        else if (inflatedGrid[nx, ny] != 255)
-                                        {
-                                            // Zona sfumata (il costo cala man mano che ci allontaniamo dal muro)
-                                            double dist = Math.Sqrt(distSquared);
-                                            double denominator = inflationRadiusCells - robotRadiusCells;
-                                            if (denominator <= 0) denominator = 1.0;
-
-                                            double costFactor = 1.0 - ((dist - robotRadiusCells) / denominator);
-                                            int newCost = (int)Math.Max(1, Math.Min(200, costFactor * 150));
-
-                                            if (newCost > inflatedGrid[nx, ny])
-                                            {
-                                                inflatedGrid[nx, ny] = newCost;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    if (x > 0) distSq[x, y] = Math.Min(distSq[x, y], distSq[x - 1, y] + 1);
+                    if (y > 0) distSq[x, y] = Math.Min(distSq[x, y], distSq[x, y - 1] + 1);
+                    if (x > 0 && y > 0) distSq[x, y] = Math.Min(distSq[x, y], distSq[x - 1, y - 1] + 1.414);
                 }
             }
 
-            return inflatedGrid;
+            // Passaggio 2: Basso-Destra -> Alto-Sinistra
+            for (int y = height - 1; y >= 0; y--)
+            {
+                for (int x = width - 1; x >= 0; x--)
+                {
+                    if (x < width - 1) distSq[x, y] = Math.Min(distSq[x, y], distSq[x + 1, y] + 1);
+                    if (y < height - 1) distSq[x, y] = Math.Min(distSq[x, y], distSq[x, y + 1] + 1);
+                    if (x < width - 1 && y < height - 1) distSq[x, y] = Math.Min(distSq[x, y], distSq[x + 1, y + 1] + 1.414);
+                }
+            }
+
+            var result = new double[width, height];
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    result[x, y] = distSq[x, y] * resolution;
+
+            return result;
         }
     }
 }

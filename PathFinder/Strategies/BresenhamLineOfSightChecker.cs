@@ -1,19 +1,12 @@
 using PathFinder.Interfaces;
 using PathFinder.Models;
+using System;
 
 namespace PathFinder.Strategies
 {
     public class BresenhamLineOfSightChecker : ILineOfSightChecker
     {
-        private readonly ISpeedEvaluator _speedEvaluator;
-
-        // Iniezione della dipendenza
-        public BresenhamLineOfSightChecker(ISpeedEvaluator speedEvaluator)
-        {
-            _speedEvaluator = speedEvaluator;
-        }
-
-        public bool HasLineOfSight(int[,] costmap, Coordinate start, Coordinate end, int maxAllowedCost = 200)
+        public bool HasLineOfSight(double[,] distanceMap, Coordinate start, Coordinate end, double requiredClearance)
         {
             int x0 = start.X, y0 = start.Y;
             int x1 = end.X, y1 = end.Y;
@@ -24,20 +17,10 @@ namespace PathFinder.Strategies
             int sy = y0 < y1 ? 1 : -1;
             int err = dx - dy;
 
-            // Chiediamo all'evaluator la velocità nel punto di partenza
-            double startingSpeed = _speedEvaluator.GetSpeedForCost(costmap[x0, y0]);
-
             while (true)
             {
-                int currentCost = costmap[x0, y0];
-
-                // 1. Il costo supera la soglia di sicurezza? Spezza la linea.
-                if (!_speedEvaluator.IsCostAllowed(currentCost, maxAllowedCost))
-                    return false;
-
-                // 2. La velocità ottimale è cambiata rispetto alla partenza? Spezza la linea!
-                double currentSpeed = _speedEvaluator.GetSpeedForCost(currentCost);
-                if (Math.Abs(currentSpeed - startingSpeed) > 0.01) // Confronto double sicuro
+                // Verifica se la distanza dall'ostacolo in questo punto è sufficiente
+                if (distanceMap[x0, y0] < requiredClearance)
                     return false;
 
                 if (x0 == x1 && y0 == y1) break;

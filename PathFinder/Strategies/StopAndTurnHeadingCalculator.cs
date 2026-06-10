@@ -1,30 +1,23 @@
-﻿using PathFinder.Interfaces;
+using PathFinder.Interfaces;
 using PathFinder.Models;
+using System;
+using System.Collections.Generic;
 
 namespace PathFinder.Strategies
 {
     public class StopAndTurnHeadingCalculator : IHeadingCalculator
     {
-        private readonly ISpeedEvaluator _speedEvaluator;
         private readonly double _initialRobotHeading = 0.0;
 
-        // Iniettiamo l'evaluator anche qui
-        public StopAndTurnHeadingCalculator(ISpeedEvaluator speedEvaluator)
-        {
-            _speedEvaluator = speedEvaluator;
-        }
-
-        // Aggiungiamo la costmap alla firma per poter leggere i costi
-        public List<Pose> CalculateHeadings(List<Coordinate> waypoints, int[,] costmap, double? finalHeadingRad = null)
+        public List<Pose> CalculateHeadings(List<Coordinate> waypoints, double? finalHeadingRad = null)
         {
             var poses = new List<Pose>();
             if (waypoints == null || waypoints.Count == 0) return poses;
 
             if (waypoints.Count == 1)
             {
-                double speed = _speedEvaluator.GetSpeedForCost(costmap[waypoints[0].X, waypoints[0].Y]);
                 double initialRotation = finalHeadingRad ?? 0;
-                poses.Add(new Pose(waypoints[0].X, waypoints[0].Y, initialRotation, speed));
+                poses.Add(new Pose(waypoints[0].X, waypoints[0].Y, initialRotation, 0.0));
                 return poses;
             }
 
@@ -42,10 +35,8 @@ namespace PathFinder.Strategies
                 double rawDeltaTheta = targetHeading - currentHeading;
                 double normalizedDeltaTheta = Math.Atan2(Math.Sin(rawDeltaTheta), Math.Cos(rawDeltaTheta));
 
-                // CALCOLO VELOCITÀ: Leggiamo il costo del waypoint attuale e assegnamo la marcia!
-                double nodeSpeed = _speedEvaluator.GetSpeedForCost(costmap[current.X, current.Y]);
-
-                poses.Add(new Pose(current.X, current.Y, normalizedDeltaTheta, nodeSpeed));
+                // La velocità verrà assegnata successivamente dal PathfindingService usando la DistanceMap
+                poses.Add(new Pose(current.X, current.Y, normalizedDeltaTheta, 0.0));
                 currentHeading = targetHeading;
             }
 

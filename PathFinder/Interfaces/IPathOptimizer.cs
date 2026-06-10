@@ -5,6 +5,6 @@ namespace PathFinder.Interfaces
 {
     public interface IPathOptimizer
     {
-        List<Coordinate> Optimize(List<Coordinate> path, int[,] grid);
+        List<Coordinate> Optimize(List<Coordinate> path, double[,] distanceMap, ISpeedEvaluator speedEvaluator);
     }
 }

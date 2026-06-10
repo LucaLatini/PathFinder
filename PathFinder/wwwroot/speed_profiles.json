@@ -1,0 +1,7 @@
+[
+  { "Speed": 1.0, "RequiredClearanceMeters": 0.8 },
+  { "Speed": 0.9, "RequiredClearanceMeters": 0.85 },
+  { "Speed": 0.7, "RequiredClearanceMeters": 0.75 },
+  { "Speed": 0.5, "RequiredClearanceMeters": 0.65 },
+  { "Speed": 0.3, "RequiredClearanceMeters": 0.6 }
+]

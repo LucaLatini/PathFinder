@@ -21,24 +21,22 @@ namespace PathFinder.Controllers
         {
             return View();
         }
+[HttpPost]
+public async Task<IActionResult> CalculatePath(
+    IFormFile image,
+    IFormFile metadataFile,
+    string waypointsJson,
+    int cellSize = 10,
+    double? finalAngleDeg = null)
+{
+    if (image == null || image.Length == 0) return BadRequest("Immagine planimetria mancante.");
+    if (metadataFile == null || metadataFile.Length == 0) return BadRequest("File metadati mancante.");
+    if (string.IsNullOrEmpty(waypointsJson)) return BadRequest("Punti mancanti.");
+    if (cellSize <= 0) cellSize = 1;
 
-        [HttpPost]
-        public async Task<IActionResult> CalculatePath(
-            IFormFile image,
-            IFormFile metadataFile,
-            string waypointsJson,
-            int cellSize = 10,
-            double robotRadiusMeters = 0.5,
-            double? finalAngleDeg = null)
-        {
-            if (image == null || image.Length == 0) return BadRequest("Immagine planimetria mancante.");
-            if (metadataFile == null || metadataFile.Length == 0) return BadRequest("File metadati mancante.");
-            if (string.IsNullOrEmpty(waypointsJson)) return BadRequest("Punti mancanti.");
-            if (cellSize <= 0) cellSize = 1;
+    _logger.LogInformation("=== [PATHFINDER] Nuova richiesta ===");
+    _logger.LogInformation("[INPUT] cellSize           = {CellSize} px", cellSize);
 
-            _logger.LogInformation("=== [PATHFINDER] Nuova richiesta ===");
-            _logger.LogInformation("[INPUT] robotRadiusMeters = {RobotRadiusMeters} m", robotRadiusMeters);
-            _logger.LogInformation("[INPUT] cellSize           = {CellSize} px", cellSize);
             _logger.LogInformation("[INPUT] finalAngleDeg      = {FinalAngleDeg}°", finalAngleDeg?.ToString() ?? "non specificato");
             _logger.LogInformation("[INPUT] CurrentCulture     = {Culture}", Thread.CurrentThread.CurrentCulture.Name);
 
@@ -76,18 +74,6 @@ namespace PathFinder.Controllers
                 }
             }
 
-            // --- CONVERSIONE METRI -> CELLE ---
-            double gridCellSizeInMeters = metadata.resolution * cellSize;
-            int robotRadiusInCells = (int)Math.Ceiling(robotRadiusMeters / gridCellSizeInMeters);
-            if (robotRadiusInCells < 1) robotRadiusInCells = 1;
-
-            _logger.LogInformation("[CONV] gridCellSizeInMeters = {CellM} m/cella", gridCellSizeInMeters);
-            _logger.LogInformation("[CONV] robotRadiusInCells   = {RadiusCells} celle", robotRadiusInCells);
-            if (robotRadiusInCells > 10)
-            {
-                _logger.LogWarning("[CONV] ⚠️ robotRadiusInCells={RadiusCells} > 10!", robotRadiusInCells);
-            }
-
             var transformer = new CoordinateTransformer(metadata);
 
             double? canvasFinalAngleRad = null;
@@ -112,13 +98,13 @@ namespace PathFinder.Controllers
                 imageStream,
                 targetCells,
                 cellSize,
-                robotRadiusInCells,
+                metadata.resolution,
                 canvasFinalAngleRad);
 
             _logger.LogInformation("[RISULTATO] Pose generate: {Count}", finalPoses.Count);
             if (finalPoses.Count == 0)
             {
-                _logger.LogWarning("[RISULTATO] ⚠️ Nessun percorso! robotRadiusInCells={R}", robotRadiusInCells);
+                _logger.LogWarning("[RISULTATO] ⚠️ Nessun percorso trovato!");
             }
 
             // ═══════════════════════════════════════════════════════════════════

@@ -1,19 +1,23 @@
 using PathFinder.Interfaces;
 using PathFinder.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace PathFinder.Strategies
 {
     public class AStarEngine : IPathfindingEngine
     {
-        public List<Coordinate> FindPath(int[,] grid, Coordinate start, Coordinate end)
+        public List<Coordinate> FindPath(double[,] distanceMap, Coordinate start, Coordinate end, ISpeedEvaluator speedEvaluator, double gridCellSizeMeters)
         {
-            int width = grid.GetLength(0);
-            int height = grid.GetLength(1);
+            int width = distanceMap.GetLength(0);
+            int height = distanceMap.GetLength(1);
 
-            // Consideriamo ostacolo se il costo supera 200 (valore di default per IsCostAllowed) 
-            // In un'app reale, questo dovrebbe essere letto dalla velocità / strategia o iniettato
+            double maxPossibleSpeed = speedEvaluator.GetProfiles().Max(p => p.Speed);
+
             if (!IsValid(start, width, height) || !IsValid(end, width, height) ||
-                grid[start.X, start.Y] > 200 || grid[end.X, end.Y] > 200)
+                !speedEvaluator.IsDistanceSafe(distanceMap[start.X, start.Y]) || 
+                !speedEvaluator.IsDistanceSafe(distanceMap[end.X, end.Y]))
             {
                 return new List<Coordinate>();
             }
@@ -22,7 +26,10 @@ namespace PathFinder.Strategies
             var allNodes = new Dictionary<Coordinate, PathNode>();
             var closedSet = new HashSet<Coordinate>();
 
-            var startNode = new PathNode(start) { GCost = 0, HCost = GetOctileHeuristic(start, end) };
+            var startNode = new PathNode(start) { 
+                GCost = 0, 
+                HCost = (int)(GetOctileDistance(start, end) * gridCellSizeMeters / maxPossibleSpeed * 1000) 
+            };
             allNodes[start] = startNode;
             openQueue.Enqueue(startNode, startNode.FCost);
 
@@ -39,19 +46,33 @@ namespace PathFinder.Strategies
 
                 foreach (var neighborPos in GetNeighbors(current.Position, width, height))
                 {
-                    int cellCost = grid[neighborPos.X, neighborPos.Y];
-                    if (closedSet.Contains(neighborPos) || cellCost > 200)
+                    double distanceToObstacle = distanceMap[neighborPos.X, neighborPos.Y];
+                    if (closedSet.Contains(neighborPos) || !speedEvaluator.IsDistanceSafe(distanceToObstacle))
                         continue;
 
-                    // Il costo di movimento base (10 = dritto, 14 = diag)
-                    int movementCost = IsDiagonal(current.Position, neighborPos) ? 14 : 10;
+                    double speed = speedEvaluator.GetMaxSpeedForDistance(distanceToObstacle);
+                    if (speed <= 0) continue;
 
-                    // Aggiungiamo un forte peso basato sulla costmap
-                    // Moltiplichiamo il valore della costmap (0-200) per forzare A* a evitarlo
-                    // Puoi aumentare questo moltiplicatore per renderlo ancora più "timoroso" dei muri
-                    int penalty = Convert.ToInt32(cellCost * 4);
+                    double stepDistanceCells = IsDiagonal(current.Position, neighborPos) ? 1.414 : 1.0;
+                    double stepDistanceMeters = stepDistanceCells * gridCellSizeMeters;
 
-                    int newGCost = current.GCost + movementCost + penalty;
+                    int timeCost = (int)(stepDistanceMeters / speed * 1000);
+
+                    int turnPenalty = 0;
+                    if (current.Parent != null)
+                    {
+                        int dx1 = current.Position.X - current.Parent.Position.X;
+                        int dy1 = current.Position.Y - current.Parent.Position.Y;
+                        int dx2 = neighborPos.X - current.Position.X;
+                        int dy2 = neighborPos.Y - current.Position.Y;
+
+                        if (dx1 != dx2 || dy1 != dy2)
+                        {
+                            turnPenalty = 50; 
+                        }
+                    }
+
+                    int newGCost = current.GCost + timeCost + turnPenalty;
 
                     if (!allNodes.TryGetValue(neighborPos, out var neighborNode))
                     {
@@ -62,7 +83,7 @@ namespace PathFinder.Strategies
                     if (newGCost < neighborNode.GCost || !neighborNode.InOpenList)
                     {
                         neighborNode.GCost = newGCost;
-                        neighborNode.HCost = GetOctileHeuristic(neighborPos, end);
+                        neighborNode.HCost = (int)(GetOctileDistance(neighborPos, end) * gridCellSizeMeters / maxPossibleSpeed * 1000);
                         neighborNode.Parent = current;
 
                         openQueue.Enqueue(neighborNode, neighborNode.FCost);
@@ -74,12 +95,11 @@ namespace PathFinder.Strategies
             return new List<Coordinate>();
         }
 
-        private int GetOctileHeuristic(Coordinate a, Coordinate b)
+        private double GetOctileDistance(Coordinate a, Coordinate b)
         {
             int dx = Math.Abs(a.X - b.X);
             int dy = Math.Abs(a.Y - b.Y);
-            int h = 10 * (dx + dy) + (14 - 2 * 10) * Math.Min(dx, dy);
-            return h + (h / 1000);
+            return (dx + dy) + (1.414 - 2) * Math.Min(dx, dy);
         }
 
         private IEnumerable<Coordinate> GetNeighbors(Coordinate current, int width, int height)

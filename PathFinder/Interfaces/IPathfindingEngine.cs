@@ -5,6 +5,6 @@ namespace PathFinder.Interfaces
 {
     public interface IPathfindingEngine
     {
-        List<Coordinate> FindPath(int[,] grid, Coordinate start, Coordinate end);
+        List<Coordinate> FindPath(double[,] distanceMap, Coordinate start, Coordinate end, ISpeedEvaluator speedEvaluator, double gridCellSizeMeters);
     }
 }

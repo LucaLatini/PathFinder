@@ -1,8 +1,12 @@
-﻿namespace PathFinder.Interfaces
+using System.Collections.Generic;
+using PathFinder.Models;
+
+namespace PathFinder.Interfaces
 {
     public interface ISpeedEvaluator
     {
-        double GetSpeedForCost(int cost);
-        bool IsCostAllowed(int cost, int maxAllowedCost);
+        double GetMaxSpeedForDistance(double distanceMeters);
+        bool IsDistanceSafe(double distanceMeters);
+        List<SpeedProfile> GetProfiles();
     }
 }
