@@ -1,34 +1,28 @@
 # PathFinder
 
-A web-based pathfinding engine built with .NET 10. It processes map images and metadata to generate optimized paths for navigation, using A* for search and Raycasting for smoothing.
+PathFinder è un motore web-based per il calcolo e l'ottimizzazione di percorsi su planimetrie personalizzate, progettato specificamente per applicazioni di **Autonomous Mobile Robots (AMR)**. Sviluppato con .NET 10, integra l'algoritmo A* con ottimizzazioni post-elaborazione (Raycasting) per generare rotte fluide e prive di nodi ridondanti, ideali per la navigazione robotica.
 
-## Core Features
+Il sistema è progettato per colmare il divario tra la rappresentazione grafica della mappa e l'esecuzione fisica del movimento, fornendo logiche avanzate per il calcolo dell'orientamento (Heading) e la gestione dinamica delle velocità.
 
-*   **Grid-based Pathfinding:** Uses A* algorithm with customizable cell size.
-*   **Path Optimization:** Post-processing via Raycasting to remove redundant nodes while maintaining line-of-sight.
-*   **Navigation Logic:** Dynamic heading calculation (Stop-and-Turn) and speed evaluation based on configurable profiles.
-*   **Image Processing:** Integrates SkiaSharp for map analysis and visualization.
-*   **Localization Friendly:** Configured with `InvariantCulture` to handle standard W3C number inputs consistently across different server locales.
+## Caratteristiche Tecniche per AMR
 
-## Tech Stack
+*   **Motore A*:** Ricerca su griglia con granularità delle celle configurabile per adattarsi a diversi ingombri robotici.
+*   **Ottimizzazione Raycasting:** Riduzione dei nodi del percorso mantenendo la linea di vista (Line of Sight), fondamentale per minimizzare le fermate e le rotazioni del robot.
+*   **Logica di Navigazione:** Calcolo dinamico della direzione (Stop-and-Turn) e valutazione delle velocità basata su profili fisici reali.
+*   **Robustezza del Parsing:** Utilizzo di `InvariantCulture` per garantire interoperabilità tra sistemi di bordo e server web, evitando errori di interpretazione numerica.
+
+## Stack Tecnologico
 
 *   **Backend:** ASP.NET Core 10 (MVC)
-*   **Graphics:** SkiaSharp
-*   **Architecture:** Strategy Pattern for decoupled engine components (A*, LOS, Optimizers).
-*   **Frontend:** Razor Views, Vanilla CSS, jQuery.
+*   **Grafica:** SkiaSharp per l'analisi e la visualizzazione delle mappe.
+*   **Architettura:** Utilizzo estensivo del pattern Strategy per componenti modularizzate (Engines, LOS, Optimizers).
 
-## Getting Started
+## Setup Rapido
 
-### Prerequisites
-*   .NET 10 SDK
+1.  Assicurati di avere installato l'SDK di .NET 10.
+2.  Ripristina le dipendenze: `dotnet restore`.
+3.  Avvia l'applicazione: `dotnet run --project PathFinder`.
 
-### Installation
-1. Clone the repository.
-2. Navigate to the project folder: `cd PathFinder`.
-3. Restore dependencies: `dotnet restore`.
-4. Run the application: `dotnet run --project PathFinder`.
+## Configurazione
 
-## Configuration
-
-*   `wwwroot/speed_profiles.json`: Defines speed limits and acceleration curves.
-*   `map_meta.json`: Reference metadata for map scaling and coordinate transformation.
+Le logiche di navigazione possono essere calibrate agendo sui file JSON in `wwwroot`, in particolare `speed_profiles.json` per i limiti di velocità e le accelerazioni del robot.
